@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8" />
+  <title>IndexedDB</title>
+  <style>
+  body {
+    background-color: #ffffff;
+    font-family: sans-serif;
+  }
+  </style>
+</head>
+<body>
+	<div>
+	<button onclick="add()">add</button>
+	<button onclick="read()">read</button>
+	<button onclick="readAll()">readAll</button>
+	<button onclick="update()">update</button>
+	<button onclick="remove()">remove</button>
+	<p id="msg"></p>
+	</div>
+    <script>
+		var DB;
+		var DATABASENAME = 'indexedDB-demo';
+		var VERSION = 1;
+		
+		var request = window.indexedDB.open(DATABASENAME, VERSION);
+		
+		request.onerror = function (event) {
+		  console.log('数据库打开报错');
+		};
+		request.onsuccess = function (event) {
+		  DB = request.result;
+		  console.log('数据库打开成功');
+		  console.log(DB);
+		};
+		
+		request.onupgradeneeded = function(event) {
+		  DB = event.target.result;
+		  var objectStore = DB.createObjectStore('person', { keyPath: 'id', autoIncrement: true });
+		  objectStore.createIndex('name', 'name', { unique: false });
+		  objectStore.createIndex('email', 'email', { unique: true });
+		}
+		
+		function add() {
+		  var request = DB.transaction(['person'], 'readwrite')
+			.objectStore('person').add({ id: 1, name: '张三', age: 24, email: '1@example.com' });
+
+		  request.onsuccess = function (event) {
+			console.log('数据写入成功');
+		  };
+
+		  request.onerror = function (event) {
+			var msg = event.target.error;
+			console.log(msg);
+			document.getElementById('msg').innerHTML = msg;
+		  }
+		}
+		
+		function read() {
+		   var transaction = DB.transaction(['person']);
+		   var objectStore = transaction.objectStore('person');
+		   var request = objectStore.get(1);
+
+		   request.onerror = function(event) {
+			var msg = event.target.error;
+			console.log(msg);
+			document.getElementById('msg').innerHTML = msg;
+		   };
+
+		   request.onsuccess = function( event) {
+			  if (request.result) {
+				console.log('Name: ' + request.result.name);
+				console.log('Age: ' + request.result.age);
+				console.log('Email: ' + request.result.email);
+			  } else {
+				console.log('未获得数据记录');
+			  }
+		   };
+		}
+		
+		function readAll() {
+		  var objectStore = DB.transaction('person').objectStore('person');
+			objectStore.openCursor().onsuccess = function (event) {
+			 var cursor = event.target.result;
+			 if (cursor) {
+			   console.log('Id: ' + cursor.key);
+			   console.log('Name: ' + cursor.value.name);
+			   console.log('Age: ' + cursor.value.age);
+			   console.log('Email: ' + cursor.value.email);
+			   cursor.continue();
+			} else {
+			  console.log('没有更多数据了！');
+			}
+		  };
+		}
+
+		function update() {
+		  var request = DB.transaction(['person'], 'readwrite')
+			.objectStore('person')
+			.put({ id: 1, name: '李四', age: 35, email: 'lisi@example.com' });
+
+		  request.onsuccess = function (event) {
+			console.log('数据更新成功');
+		  };
+
+		  request.onerror = function (event) {
+			var msg = event.target.error;
+			console.log(msg);
+			document.getElementById('msg').innerHTML = msg;
+		  }
+		}
+		
+		function remove() {
+		  var request = DB.transaction(['person'], 'readwrite')
+			.objectStore('person')
+			.delete(1);
+
+		  request.onsuccess = function (event) {
+			console.log('数据删除成功');
+		  };
+		  request.onerror = function (event) {
+			var msg = event.target.error;
+			console.log(msg);
+			document.getElementById('msg').innerHTML = msg;
+		  }
+		}
+    </script>
+</body>
+</html>
